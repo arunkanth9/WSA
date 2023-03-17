@@ -53,3 +53,5 @@ jobs:
           append_body: true
           tag_name: ${{ steps.date.outputs.date }}
           body: ${{ steps.date.outputs.checksum }}
+          
+          
