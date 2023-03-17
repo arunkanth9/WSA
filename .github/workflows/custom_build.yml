@@ -1,0 +1,115 @@
+name: Custom Build
+run-name: WSA ${{ inputs.release_type }} Channel with ${{ inputs.root_sol }} and ${{ inputs.gapps_brand }}
+on:
+  workflow_dispatch:
+    inputs:
+      arch:
+        type: choice
+        description: Target CPU architecture of WSA.
+        required: true
+        options: [x64, arm64, Both]
+        default: Both
+      release_type:
+        type: choice
+        description: WSA Release Channel
+        required: true
+        options: ["Retail","Release Preview","Insider Slow","Insider Fast"]
+        default: "Retail"
+      root_sol:
+        type: choice
+        description: Root solution
+        required: true
+        options: ["Non-root","KernelSU","Magisk Delta (HuskyDG)","Magisk Stable","Magisk Beta","Magisk Canary","Magisk Debug"]
+        default: "Magisk Stable"
+      gapps_brand:
+        type: choice
+        description: Google Apps brand
+        required: true
+        options: ["OpenGApps v11.0","MindTheGapps v13.0","No GApps"]
+        default: "MindTheGapps v13.0"
+      gapps_var:
+        type: choice
+        description: Google Apps variant.
+        required: true
+        options: ["Super","Stock","Full","Mini","Micro","Nano","Pico","TVStock","TVMini"]
+        default: "Pico"
+      compression:
+        type: choice
+        description: Compression format.
+        required: true
+        options: [".zip",".7z",".xz"]
+        default: ".7z"
+      remove_amazon:
+        description: "Remove Amazon AppStore from the system"
+        required: true
+        default: true
+        type: boolean
+
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Generate build matrix
+        id: set-matrix
+        uses: actions/github-script@v6
+        with:
+          script: |
+            let matrix = {};
+            let arch = "${{ github.event.inputs.arch }}"
+            switch ( arch ) {
+              case "x64":
+                matrix.arch = ["x64"];
+                break;
+              case "arm64":
+                matrix.arch = ["arm64"];
+                break;
+              default:
+                matrix.arch = ["x64", "arm64"];
+                break;
+            }
+            core.setOutput("matrix",JSON.stringify(matrix));
+  custbuild:
+    name: Build WSA
+    runs-on: ubuntu-latest
+    needs: matrix
+    strategy:
+      matrix: ${{fromJson(needs.matrix.outputs.matrix)}}
+    steps:
+      - name: Checkout ♻️
+        uses: actions/checkout@v3
+      - name: Install Dependencies 🧑‍🏭
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y whiptail setools lzip wine patchelf e2fsprogs python3-pip aria2 p7zip-full attr xz-utils unzip cabextract
+          sudo wget -P /usr/local/bin/ https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks
+          sudo chmod +x /usr/local/bin/winetricks
+          wget -P /home/runner/.cache/winetricks/msxml6/ https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_REF_NAME}/wine/.cache/winetricks/msxml6/msxml6-KB973686-enu-amd64.exe
+          pip list --disable-pip-version-check | grep -E "^requests " >/dev/null 2>&1 || python3 -m pip install requests
+          winetricks list-installed | grep -E "^msxml6" >/dev/null 2>&1 || winetricks msxml6 || abort
+      - name: Grant exec permission to script 👑
+        run: chmod +x ./scripts/build.sh
+
+      - name: Build WSA 🏗️
+        id: wsa
+        run: |
+          declare -A opts=( ["RELEASE_TYPE,Retail"]="retail" ["RELEASE_TYPE,Release Preview"]="RP" ["RELEASE_TYPE,Insider Slow"]="WIS" ["RELEASE_TYPE,Insider Fast"]="WIF" ["ROOT_SOL,Magisk Stable"]="stable" ["ROOT_SOL,Magisk Beta"]="beta" ["ROOT_SOL,Magisk Canary"]="canary" ["ROOT_SOL,Magisk Debug"]="debug" ["ROOT_SOL,Magisk Delta (HuskyDG)"]="delta" ["ROOT_SOL,KernelSU"]="kernelsu" ["ROOT_SOL,Non-root"]="none" ["GAPPS_BRAND,OpenGApps v11.0"]="OpenGApps" ["GAPPS_BRAND,MindTheGapps v13.0"]="MindTheGapps" ["GAPPS_BRAND,No GApps"]="none" ["GAPPS_VAR,Pico"]="pico" ["GAPPS_VAR,Nano"]="nano" ["GAPPS_VAR,Micro"]="micro" ["GAPPS_VAR,Mini"]="mini" ["GAPPS_VAR,Full"]="full" ["GAPPS_VAR,Stock"]="stock" ["GAPPS_VAR,Super"]="super" ["GAPPS_VAR,TVStock"]="tvstock" ["GAPPS_VAR,TVMini"]="tvmini" ["REMOVE_AMAZON,true"]="--remove-amazon" ["COMPRESSION,.zip"]="zip" ["COMPRESSION,.7z"]="7z" ["COMPRESSION,.xz"]="xz" )
+          if [[ "${{ inputs.root_sol }}" == *Magisk* ]]; then
+              MAGISK_VER="${opts[ROOT_SOL,${{ inputs.root_sol }}]}"
+              ROOT_SOL="magisk"
+          else
+              ROOT_SOL="${opts[ROOT_SOL,${{ inputs.root_sol }}]}"
+              MAGISK_VER="${opts[ROOT_SOL,Magisk Stable]}"
+          fi
+          
+          ./scripts/build.sh --arch ${{ matrix.arch }} --release-type ${opts[RELEASE_TYPE,${{ inputs.release_type }}]} --magisk-ver $MAGISK_VER --gapps-brand ${opts[GAPPS_BRAND,${{ inputs.gapps_brand }}]} --gapps-variant ${opts[GAPPS_VAR,${{ inputs.gapps_var }}]} --root-sol $ROOT_SOL --compress-format ${opts[COMPRESSION,${{ inputs.compression }}]} ${opts[REMOVE_AMAZON,${{ inputs.remove_amazon }}]}
+      - name: File Checksum ✔️
+        run: |
+          cd ./output/
+          sha256sum '${{ steps.wsa.outputs.artifact }}${{ inputs.compression }}' >> sha256-checksum.txt
+      - name: Upload Artifact 🤌
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.wsa.outputs.artifact }}
+          path: ./output
