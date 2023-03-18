@@ -92,20 +92,20 @@ fi
 if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
     # TODO: Keep it pico since other variants of opengapps are unable to boot successfully
     if [ "$DEBUG" = "1" ]; then
-    GAPPS_VARIANT=$(
-        Radiolist '([title]="Variants of GApps"
+        GAPPS_VARIANT=$(
+            Radiolist '([title]="Variants of GApps"
                      [default]="pico")' \
-            \
-            'super' "" 'off' \
-            'stock' "" 'off' \
-            'full' "" 'off' \
-            'mini' "" 'off' \
-            'micro' "" 'off' \
-            'nano' "" 'off' \
-            'pico' "" 'on' \
-            'tvstock' "" 'off' \
-            'tvmini' "" 'off'
-    )
+                \
+                'super' "" 'off' \
+                'stock' "" 'off' \
+                'full' "" 'off' \
+                'mini' "" 'off' \
+                'micro' "" 'off' \
+                'nano' "" 'off' \
+                'pico' "" 'on' \
+                'tvstock' "" 'off' \
+                'tvmini' "" 'off'
+        )
     else
         GAPPS_VARIANT=pico
     fi
@@ -121,7 +121,7 @@ fi
 
 ROOT_SOL=$(
     Radiolist '([title]="Root solution"
-                     [default]="magisk")' \
+                     [default]="magisk")' \-    
         \
         'magisk' "Magisk" 'on' \
         'kernelsu' "KernelSU" 'off' \
@@ -141,7 +141,7 @@ if [ "$COMPRESS_OUTPUT" = "--compress" ]; then
             'zip' "Zip" 'off' \
             '7z' "7-Zip" 'on' \
             'xz' "tar.xz" 'off'
-        )
+    )
 fi
 # if (YesNoBox '([title]="Off line mode" [text]="Do you want to enable off line mode?")'); then
 #     OFFLINE="--offline"

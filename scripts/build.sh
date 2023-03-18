@@ -35,7 +35,7 @@ fi
 WORK_DIR=$(mktemp -d -t wsa-build-XXXXXXXXXX_) || exit 1
 MOUNT_DIR="$WORK_DIR"/system
 SUDO=""
-command -v sudo > /dev/null 2>&1 && SUDO="$(which sudo 2>/dev/null)"
+command -v sudo >/dev/null 2>&1 && SUDO="$(which sudo 2>/dev/null)"
 DOWNLOAD_DIR=../download
 DOWNLOAD_CONF_NAME=download.list
 umount_clean() {
@@ -98,7 +98,7 @@ abort() {
 trap abort INT TERM
 
 Gen_Rand_Str() {
-    haveged -n $((${1:-32}*512)) --file - 2>/dev/null | tr -dc '[:lower:]' | head -c"$1"
+    haveged -n $((${1:-32} * 512)) --file - 2>/dev/null | tr -dc '[:lower:]' | head -c"$1"
 }
 
 default() {
@@ -270,24 +270,72 @@ opts=$(
 
 eval set --"$opts"
 while [[ $# -gt 0 ]]; do
-   case "$1" in
-        --arch              ) ARCH="$2"; shift 2 ;;
-        --release-type      ) RELEASE_TYPE="$2"; shift 2 ;;
-        --gapps-brand       ) GAPPS_BRAND="$2"; shift 2 ;;
-        --gapps-variant     ) GAPPS_VARIANT="$2"; shift 2 ;;
-        --nofix-props       ) NOFIX_PROPS="yes"; shift ;;
-        --root-sol          ) ROOT_SOL="$2"; shift 2 ;;
-        --compress-format   ) COMPRESS_FORMAT="$2"; shift 2 ;;
-        --remove-amazon     ) REMOVE_AMAZON="yes"; shift ;;
-        --compress          ) COMPRESS_OUTPUT="yes"; shift ;;
-        --offline           ) OFFLINE="on"; shift ;;
-        --magisk-custom     ) CUSTOM_MAGISK="debug"; shift ;;
-        --magisk-ver        ) MAGISK_VER="$2"; shift 2 ;;
-        --debug             ) DEBUG="on"; shift ;;
-        --skip-download-wsa ) DOWN_WSA="no"; shift ;;
-        --help              ) usage; exit 0 ;;
-        --                  ) shift; break;;
-   esac
+    case "$1" in
+    --arch)
+        ARCH="$2"
+        shift 2
+        ;;
+    --release-type)
+        RELEASE_TYPE="$2"
+        shift 2
+        ;;
+    --gapps-brand)
+        GAPPS_BRAND="$2"
+        shift 2
+        ;;
+    --gapps-variant)
+        GAPPS_VARIANT="$2"
+        shift 2
+        ;;
+    --nofix-props)
+        NOFIX_PROPS="yes"
+        shift
+        ;;
+    --root-sol)
+        ROOT_SOL="$2"
+        shift 2
+        ;;
+    --compress-format)
+        COMPRESS_FORMAT="$2"
+        shift 2
+        ;;
+    --remove-amazon)
+        REMOVE_AMAZON="yes"
+        shift
+        ;;
+    --compress)
+        COMPRESS_OUTPUT="yes"
+        shift
+        ;;
+    --offline)
+        OFFLINE="on"
+        shift
+        ;;
+    --magisk-custom)
+        CUSTOM_MAGISK="debug"
+        shift
+        ;;
+    --magisk-ver)
+        MAGISK_VER="$2"
+        shift 2
+        ;;
+    --debug)
+        DEBUG="on"
+        shift
+        ;;
+    --skip-download-wsa)
+        DOWN_WSA="no"
+        shift
+        ;;
+    --help)
+        usage
+        exit 0
+        ;;
+    --)
+        shift
+        break
+        ;;
+    esac
 done
 
 if [ "$CUSTOM_MAGISK" ]; then
@@ -399,7 +447,7 @@ if [ -z "${OFFLINE+x}" ]; then
         # shellcheck disable=SC1091
         source "${WORK_DIR:?}/ENV" || abort
         # shellcheck disable=SC2153
-        echo "KERNELSU_VER=$KERNELSU_VER" > "$KERNELSU_INFO"
+        echo "KERNELSU_VER=$KERNELSU_VER" >"$KERNELSU_INFO"
     fi
     if [ "$GAPPS_BRAND" != "none" ]; then
         python3 generateGappsLink.py "$ARCH" "$GAPPS_BRAND" "$GAPPS_VARIANT" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" "$ANDROID_API" "$GAPPS_ZIP_NAME" || abort
@@ -479,7 +527,7 @@ if [ "$GAPPS_BRAND" != "none" ] || [ "$ROOT_SOL" = "magisk" ]; then
     else
         echo "The Magisk zip package does not exist, rename it to magisk-debug.zip and put it in the download folder."
         exit 1
-    fi    
+    fi
     echo -e "done\n"
 fi
 
@@ -536,33 +584,33 @@ if [ ! -f /etc/mtab ]; then "$SUDO" ln -s /proc/self/mounts /etc/mtab; fi
 e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/system_ext.img || abort
 SYSTEM_EXT_SIZE=$(($(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/system_ext.img | cut -f1) + 20480))
 if [ -d "$WORK_DIR"/gapps/system_ext ]; then
-    SYSTEM_EXT_SIZE=$(( SYSTEM_EXT_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/gapps/system_ext | cut -f1) ))
+    SYSTEM_EXT_SIZE=$((SYSTEM_EXT_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/gapps/system_ext | cut -f1)))
 fi
 resize2fs "$WORK_DIR"/wsa/"$ARCH"/system_ext.img "$SYSTEM_EXT_SIZE"s || abort
 
 e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/product.img || abort
 PRODUCT_SIZE=$(($(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/product.img | cut -f1) + 20480))
 if [ -d "$WORK_DIR"/gapps/product ]; then
-    PRODUCT_SIZE=$(( PRODUCT_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/gapps/product | cut -f1) ))
+    PRODUCT_SIZE=$((PRODUCT_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/gapps/product | cut -f1)))
 fi
 resize2fs "$WORK_DIR"/wsa/"$ARCH"/product.img "$PRODUCT_SIZE"s || abort
 
 e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/system.img || abort
 SYSTEM_SIZE=$(($(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/system.img | cut -f1) + 20480))
 if [ -d "$WORK_DIR"/gapps ]; then
-    SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/gapps | cut -f1) - $(du --apparent-size -sB512 "$WORK_DIR"/gapps/product | cut -f1) ))
+    SYSTEM_SIZE=$((SYSTEM_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/gapps | cut -f1) - $(du --apparent-size -sB512 "$WORK_DIR"/gapps/product | cut -f1)))
     if [ -d "$WORK_DIR"/gapps/system_ext ]; then
-        SYSTEM_SIZE=$(( SYSTEM_SIZE - $(du --apparent-size -sB512 "$WORK_DIR"/gapps/system_ext | cut -f1) ))
+        SYSTEM_SIZE=$((SYSTEM_SIZE - $(du --apparent-size -sB512 "$WORK_DIR"/gapps/system_ext | cut -f1)))
     fi
 fi
 if [ -d "$WORK_DIR"/magisk ]; then
-    SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/magisk/magisk | cut -f1) ))
+    SYSTEM_SIZE=$((SYSTEM_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/magisk/magisk | cut -f1)))
 fi
 if [ "$ROOT_SOL" = "magisk" ] && [ -f "$MAGISK_PATH" ]; then
-    SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du --apparent-size -sB512 "$MAGISK_PATH" | cut -f1) ))
+    SYSTEM_SIZE=$((SYSTEM_SIZE + $(du --apparent-size -sB512 "$MAGISK_PATH" | cut -f1)))
 fi
 if [ -d "../$ARCH/system" ]; then
-    SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du --apparent-size -sB512 "../$ARCH/system" | cut -f1) ))
+    SYSTEM_SIZE=$((SYSTEM_SIZE + $(du --apparent-size -sB512 "../$ARCH/system" | cut -f1)))
 fi
 resize2fs "$WORK_DIR"/wsa/"$ARCH"/system.img "$SYSTEM_SIZE"s || abort
 
@@ -688,8 +736,8 @@ elif [ "$ROOT_SOL" = "kernelsu" ]; then
     echo -e "Integrate KernelSU done\n"
 fi
 
-cp "$WORK_DIR/wsa/$ARCH/resources.pri" "$WORK_DIR"/wsa/pri/en-us.pri \
-&& cp "$WORK_DIR/wsa/$ARCH/AppxManifest.xml" "$WORK_DIR"/wsa/xml/en-us.xml && {
+cp "$WORK_DIR/wsa/$ARCH/resources.pri" "$WORK_DIR"/wsa/pri/en-us.pri &&
+    cp "$WORK_DIR/wsa/$ARCH/AppxManifest.xml" "$WORK_DIR"/wsa/xml/en-us.xml && {
     echo "Merge Language Resources"
     tee "$WORK_DIR"/wsa/priconfig.xml <<EOF >/dev/null
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -702,13 +750,13 @@ cp "$WORK_DIR/wsa/$ARCH/resources.pri" "$WORK_DIR"/wsa/pri/en-us.pri \
 EOF
     if [ -f /proc/sys/fs/binfmt_misc/WSLInterop ] && [ "$(id -u)" != "0" ]; then
         ../wine/"$HOST_ARCH"/makepri.exe new /pr "$(wslpath -w "$WORK_DIR"/wsa/pri)" /in MicrosoftCorporationII.WindowsSubsystemForAndroid /cf "$(wslpath -w "$WORK_DIR"/wsa/priconfig.xml)" /of "$(wslpath -w "$WORK_DIR"/wsa/"$ARCH"/resources.pri)" /o || res_merge_failed=1
-    elif which wine64 > /dev/null; then
+    elif which wine64 >/dev/null; then
         wine64 ../wine/"$HOST_ARCH"/makepri.exe new /pr "$WORK_DIR"/wsa/pri /in MicrosoftCorporationII.WindowsSubsystemForAndroid /cf "$WORK_DIR"/wsa/priconfig.xml /of "$WORK_DIR"/wsa/"$ARCH"/resources.pri /o || res_merge_failed=1
     else
         res_merge_failed=1
     fi
-    [ -z "$res_merge_failed" ] && sed -i -zE "s/<Resources.*Resources>/<Resources>\n$(cat "$WORK_DIR"/wsa/xml/* | grep -Po '<Resource [^>]*/>' | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/\$/\\$/g' | sed 's/\//\\\//g')\n<\/Resources>/g" "$WORK_DIR"/wsa/"$ARCH"/AppxManifest.xml && \
-    echo -e "Merge Language Resources done\n"
+    [ -z "$res_merge_failed" ] && sed -i -zE "s/<Resources.*Resources>/<Resources>\n$(cat "$WORK_DIR"/wsa/xml/* | grep -Po '<Resource [^>]*/>' | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/\$/\\$/g' | sed 's/\//\\\//g')\n<\/Resources>/g" "$WORK_DIR"/wsa/"$ARCH"/AppxManifest.xml &&
+        echo -e "Merge Language Resources done\n"
 } && [ -n "$res_merge_failed" ] && echo -e "Merge Language Resources failed\n" && unset res_merge_failed
 
 echo "Add extra packages"
@@ -809,7 +857,7 @@ echo "Remove signature and add scripts"
 cp "$vclibs_PATH" "$xaml_PATH" "$WORK_DIR"/wsa/"$ARCH" || abort
 cp ../installer/Install.ps1 "$WORK_DIR"/wsa/"$ARCH" || abort
 cp ../installer/Run.bat "$WORK_DIR"/wsa/"$ARCH" || abort
-find "$WORK_DIR"/wsa/"$ARCH" -maxdepth 1 -mindepth 1 -printf "%P\n" > "$WORK_DIR"/wsa/"$ARCH"/filelist.txt || abort
+find "$WORK_DIR"/wsa/"$ARCH" -maxdepth 1 -mindepth 1 -printf "%P\n" >"$WORK_DIR"/wsa/"$ARCH"/filelist.txt || abort
 echo -e "Remove signature and add scripts done\n"
 
 echo "Generate info"
@@ -844,7 +892,7 @@ if [ "$REMOVE_AMAZON" = "yes" ]; then
     artifact_name+="-RemovedAmazon"
 fi
 echo "$artifact_name"
-echo "artifact=$artifact_name" >> $GITHUB_OUTPUT
+echo "artifact=$artifact_name" >>$GITHUB_OUTPUT
 echo -e "\nFinishing building...."
 if [ -f "$OUTPUT_DIR" ]; then
     "$SUDO" rm -rf "${OUTPUT_DIR:?}"

@@ -1,7 +1,7 @@
 name: Auto Build
 on: [workflow_call]
 
-concurrency:
+concurrency: 
   group: ${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
@@ -53,3 +53,5 @@ jobs:
           append_body: true
           tag_name: ${{ steps.date.outputs.date }}
           body: ${{ steps.date.outputs.checksum }}
+          
+          

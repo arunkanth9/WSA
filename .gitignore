@@ -1,3 +1,5 @@
 download
 output
 .vscode/settings.json
+.vscode/launch.json
+.gitignore
